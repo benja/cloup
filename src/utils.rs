@@ -17,18 +17,32 @@ pub struct Cli {
 
 #[derive(Subcommand, Debug)]
 pub enum Command {
-    Init {
-        name: Option<String>,
-    },
+    /// Initialise folder to store cloups in, only need to run once
+    Init { name: Option<String> },
+    /// Create a new cloup
     Create {
+        /// Name of cloup
         name: String,
 
+        /// If left empty, will create template recursively from current directory, otherwise you can specify files with the -f flag
         #[clap(short, long, multiple_values = true)]
         files: Vec<String>,
     },
+    /// Apply cloup to folder
     Apply {
+        /// Name of cloup
+        name: String,
+
+        /// Pass this flag to overwrite files that already exist from template
+        #[clap(short)]
+        overwrite: bool,
+    },
+    /// Delete a cloup
+    Delete {
+        /// Name of cloup
         name: String,
     },
+    /// List all available cloups
     List,
 }
 #[derive(Debug)]
@@ -36,6 +50,11 @@ pub struct Cloup {
     current_dir: PathBuf,
     template_dir: PathBuf,
     // _ignored_paths: Vec<String>,
+}
+
+#[derive(Debug)]
+pub struct ApplyCommands {
+    pub overwrite: bool,
 }
 
 impl Cloup {
@@ -66,7 +85,7 @@ impl Cloup {
         }
     }
 
-    pub fn init(current_dir: PathBuf) {
+    pub fn init(current_dir: PathBuf, _namespace: Option<String>) {
         let config_dirname = dirs::data_dir()
             .expect("Data directory not found, that's on you")
             .join("cloup");
@@ -95,6 +114,8 @@ impl Cloup {
         match fs::create_dir(&template_dir) {
             Ok(_) => {
                 if !files.is_empty() {
+                    println!("{:#?}", files);
+
                     for file in files {
                         let file_path = current_dir.join(&file);
 
@@ -108,17 +129,38 @@ impl Cloup {
                                     )
                                     .expect("Folder contents should have permission to move to new directory");
                                 } else {
-                                    fs_extra::file::copy(
+                                    println!("{:?}", &file_path);
+                                    println!("{:?}", &template_dir.join(&file));
+
+                                    // create sub folders for file to be allowed to move file into that folder
+                                    template_dir
+                                        .join(&file)
+                                        .parent()
+                                        .filter(|p| !p.is_dir())
+                                        .map(|p| fs::create_dir_all(p));
+
+                                    let _ = fs_extra::file::copy(
                                         &file_path,
                                         template_dir.join(&file),
-                                        &FileCopyOptions::new(),
+                                        &FileCopyOptions::from(FileCopyOptions {
+                                            overwrite: true,
+                                            ..Default::default()
+                                        }),
                                     )
-                                    .expect("File should have permission to move to new directory");
+                                    .inspect_err(|e| {
+                                        fs::remove_dir(&template_dir)
+                                            .expect("Should be allowed to remove dir");
+                                        eprintln!("{}", e);
+                                        eprintln!(
+                                            "File should have permission to move to new directory"
+                                        );
+                                        process::exit(1);
+                                    });
                                 }
                             }
                             false => {
                                 eprintln!(
-                                    "{} {:?} {}, does not exist",
+                                    "{} {:?} {}",
                                     "The path,".bright_red(),
                                     file_path,
                                     ", does not exist".bright_red()
@@ -137,7 +179,7 @@ impl Cloup {
                             ..DirCopyOptions::new()
                         }),
                     )
-                    .expect("Files should have permission to move to new directory");
+                    .expect("Could not create template by whole folder");
                 }
 
                 println!(
@@ -147,28 +189,34 @@ impl Cloup {
                 );
             }
             Err(_) => {
-                eprintln!("Folder could not be created, likely because it already exists.");
+                eprintln!("Template {} already exists", &name.bright_purple());
                 process::exit(1);
             }
         }
     }
 
-    pub fn apply(&self, name: &str) {
+    pub fn apply(&self, name: &str, options: ApplyCommands) {
         let current_dir = &self.current_dir;
         let template_dir = self.template_dir.join(&name);
 
         match template_dir.is_dir() {
             true => {
                 // copy all files from the template dir to current dir
-                fs_extra::dir::copy(
+                match fs_extra::dir::copy(
                     &template_dir,
                     &current_dir,
                     &DirCopyOptions::from(DirCopyOptions {
                         content_only: true,
+                        skip_exist: true,
+                        overwrite: options.overwrite,
                         ..DirCopyOptions::new()
                     }),
-                )
-                .expect("Files should be able to be copied to current directory");
+                ) {
+                    Err(_) => {
+                        eprintln!("Some files could not be written, to overwrite add the {} flag to the same command", "-o".to_string().bright_purple())
+                    }
+                    _ => (),
+                }
 
                 println!(
                     "🎨 Successfully applied cloup {}",
@@ -182,6 +230,19 @@ impl Cloup {
                 );
                 process::exit(1);
             }
+        }
+    }
+
+    pub fn delete(&self, name: &str) {
+        let folder = &self.template_dir.join(&name);
+
+        if folder.is_dir() {
+            match fs::remove_dir_all(folder) {
+                Ok(_) => println!("🎉 Successfully deleted template"),
+                Err(e) => println!("Was not able to delete template for some reason {e}"),
+            }
+        } else {
+            println!("Template {} does not exist", &name.bright_purple())
         }
     }
 
