@@ -106,93 +106,91 @@ impl Cloup {
         )
         .expect("Config could not be written");
     }
+    fn handle_file_copy(current_dir: &PathBuf, template_dir: &PathBuf, file: &String) {
+        let file_path = current_dir.join(&file);
 
+        if !file_path.exists() {
+            eprintln!(
+                "{} {:?} {}",
+                "The path,".bright_red(),
+                file_path,
+                ", does not exist".bright_red()
+            );
+            process::exit(1);
+        }
+
+        if file_path.is_dir() {
+            fs_extra::dir::copy(
+                file_path,
+                &template_dir,
+                &DirCopyOptions::new(),
+            )
+            .expect("Folder contents should have permission to move to new directory");
+            return
+        }
+
+        println!("{:?}", &file_path);
+        println!("{:?}", &template_dir.join(&file));
+
+        // create sub folders for file to be allowed to move file into that folder
+        template_dir
+            .join(&file)
+            .parent()
+            .filter(|p| !p.is_dir())
+            .map(|p| fs::create_dir_all(p));
+
+        let _ = fs_extra::file::copy(
+            &file_path,
+            template_dir.join(&file),
+            &FileCopyOptions::from(FileCopyOptions {
+                overwrite: true,
+                ..Default::default()
+            }),
+        )
+        .inspect_err(|e| {
+            fs::remove_dir(&template_dir)
+                .expect("Should be allowed to remove dir");
+            eprintln!("{}", e);
+            eprintln!(
+                "File should have permission to move to new directory"
+            );
+            process::exit(1);
+        });
+        
+    }
     pub fn create(&self, name: &str, files: Vec<String>) {
-        let current_dir = &self.current_dir;
+        let current_dir = self.current_dir;
         let template_dir = self.template_dir.join(&name);
 
-        match fs::create_dir(&template_dir) {
-            Ok(_) => {
-                if !files.is_empty() {
-                    println!("{:#?}", files);
-
-                    for file in files {
-                        let file_path = current_dir.join(&file);
-
-                        match file_path.exists() {
-                            true => {
-                                if file_path.is_dir() {
-                                    fs_extra::dir::copy(
-                                        file_path,
-                                        &template_dir,
-                                        &DirCopyOptions::new(),
-                                    )
-                                    .expect("Folder contents should have permission to move to new directory");
-                                } else {
-                                    println!("{:?}", &file_path);
-                                    println!("{:?}", &template_dir.join(&file));
-
-                                    // create sub folders for file to be allowed to move file into that folder
-                                    template_dir
-                                        .join(&file)
-                                        .parent()
-                                        .filter(|p| !p.is_dir())
-                                        .map(|p| fs::create_dir_all(p));
-
-                                    let _ = fs_extra::file::copy(
-                                        &file_path,
-                                        template_dir.join(&file),
-                                        &FileCopyOptions::from(FileCopyOptions {
-                                            overwrite: true,
-                                            ..Default::default()
-                                        }),
-                                    )
-                                    .inspect_err(|e| {
-                                        fs::remove_dir(&template_dir)
-                                            .expect("Should be allowed to remove dir");
-                                        eprintln!("{}", e);
-                                        eprintln!(
-                                            "File should have permission to move to new directory"
-                                        );
-                                        process::exit(1);
-                                    });
-                                }
-                            }
-                            false => {
-                                eprintln!(
-                                    "{} {:?} {}",
-                                    "The path,".bright_red(),
-                                    file_path,
-                                    ", does not exist".bright_red()
-                                );
-                                process::exit(1);
-                            }
-                        }
-                    }
-                } else {
-                    // take entire current dir and slap in folder
-                    fs_extra::dir::copy(
-                        current_dir,
-                        template_dir,
-                        &DirCopyOptions::from(DirCopyOptions {
-                            content_only: true,
-                            ..DirCopyOptions::new()
-                        }),
-                    )
-                    .expect("Could not create template by whole folder");
-                }
-
-                println!(
-                    "🚀 Successfully created cloup {} \n\n{}",
-                    &name.to_string().bright_purple(),
-                    format!("Apply this cloup with `cloup apply {}`", &name)
-                );
-            }
-            Err(_) => {
-                eprintln!("Template {} already exists", &name.bright_purple());
-                process::exit(1);
-            }
+        if fs::create_dir(&template_dir).is_err() {
+            eprintln!("Template {} already exists", &name.bright_purple());
+            process::exit(1);
         }
+
+        if !files.is_empty() {
+            println!("{:#?}", files);
+
+            for file in &files {
+                Cloup::handle_file_copy(&current_dir, &template_dir, file);
+            }
+        } else {
+            // take entire current dir and slap in folder
+            fs_extra::dir::copy(
+                current_dir,
+                template_dir,
+                &DirCopyOptions::from(DirCopyOptions {
+                    content_only: true,
+                    ..DirCopyOptions::new()
+                }),
+            )
+            .expect("Could not create template by whole folder");
+        }
+
+        println!(
+            "🚀 Successfully created cloup {} \n\n{}",
+            &name.to_string().bright_purple(),
+            format!("Apply this cloup with `cloup apply {}`", &name)
+        );
     }
 
     pub fn apply(&self, name: &str, options: ApplyCommands) {
