@@ -130,9 +130,7 @@ impl Cloup {
         println!("{:?}", &template_dir.join(&file));
 
         // create sub folders for file to be allowed to move file into that folder
-        template_dir
-            .iter()
-            .map(|p| fs::create_dir_all(p));
+        fs::create_dir_all(template_dir.join(&file).parent().expect("Couldn't get parent directory of file."));
 
         let _ = fs_extra::file::copy(
             &file_path,
