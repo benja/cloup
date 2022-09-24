@@ -91,11 +91,8 @@ impl Cloup {
             .join("cloup");
 
         match fs::create_dir(&config_dirname) {
-            Err(e) => match e.kind() {
-                ErrorKind::PermissionDenied => {
-                    println!("Permissions were denied to create Cloup config directory")
-                }
-                _ => (),
+            Err(e) => {
+                if e.kind() == ErrorKind::PermissionDenied {println!("Permissions were denied to create Cloup config directory")}
             },
             _ => (),
         }
@@ -134,9 +131,7 @@ impl Cloup {
 
         // create sub folders for file to be allowed to move file into that folder
         template_dir
-            .join(&file)
-            .parent()
-            .filter(|p| !p.is_dir())
+            .iter()
             .map(|p| fs::create_dir_all(p));
 
         let _ = fs_extra::file::copy(
@@ -150,10 +145,9 @@ impl Cloup {
         .inspect_err(|e| {
             fs::remove_dir(&template_dir)
                 .expect("Should be allowed to remove dir");
+                
             eprintln!("{}", e);
-            eprintln!(
-                "File should have permission to move to new directory"
-            );
+            eprintln!("File should have permission to move to new directory");
             process::exit(1);
         });
         
