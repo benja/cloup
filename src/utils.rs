@@ -159,7 +159,7 @@ impl Cloup {
         
     }
     pub fn create(&self, name: &str, files: Vec<String>) {
-        let current_dir = self.current_dir;
+        let current_dir = &self.current_dir;
         let template_dir = self.template_dir.join(&name);
 
         if fs::create_dir(&template_dir).is_err() {
@@ -171,7 +171,7 @@ impl Cloup {
             println!("{:#?}", files);
 
             for file in &files {
-                Cloup::handle_file_copy(&current_dir, &template_dir, file);
+                Cloup::handle_file_copy(current_dir, &template_dir, file);
             }
         } else {
             // take entire current dir and slap in folder
