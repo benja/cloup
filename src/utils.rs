@@ -197,38 +197,37 @@ impl Cloup {
         let current_dir = &self.current_dir;
         let template_dir = self.template_dir.join(&name);
 
-        match template_dir.is_dir() {
-            true => {
-                // copy all files from the template dir to current dir
-                match fs_extra::dir::copy(
-                    &template_dir,
-                    &current_dir,
-                    &DirCopyOptions::from(DirCopyOptions {
-                        content_only: true,
-                        skip_exist: true,
-                        overwrite: options.overwrite,
-                        ..DirCopyOptions::new()
-                    }),
-                ) {
-                    Err(_) => {
-                        eprintln!("Some files could not be written, to overwrite add the {} flag to the same command", "-o".to_string().bright_purple())
-                    }
-                    _ => (),
-                }
-
-                println!(
-                    "🎨 Successfully applied cloup {}",
-                    &name.to_string().bright_purple(),
-                );
-            }
-            false => {
-                eprint!(
-                    "A cloup with the name {} does not exist",
-                    &name.to_string().bright_purple()
-                );
-                process::exit(1);
-            }
+        if !template_dir.is_dir() {
+            eprint!(
+                "A cloup with the name {} does not exist",
+                &name.to_string().bright_purple()
+            );
+            process::exit(1);
         }
+            
+        // copy all files from the template dir to current dir
+        match fs_extra::dir::copy(
+            &template_dir,
+            &current_dir,
+            &DirCopyOptions::from(DirCopyOptions {
+                content_only: true,
+                skip_exist: true,
+                overwrite: options.overwrite,
+                ..DirCopyOptions::new()
+            }),
+        ) {
+            Err(_) => {
+                eprintln!("Some files could not be written, to overwrite add the {} flag to the same command", "-o".to_string().bright_purple())
+            }
+            _ => (),
+        }
+
+        println!(
+            "🎨 Successfully applied cloup {}",
+            &name.to_string().bright_purple(),
+        );
+
+        
     }
 
     pub fn delete(&self, name: &str) {
