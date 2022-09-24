@@ -206,7 +206,7 @@ impl Cloup {
         }
             
         // copy all files from the template dir to current dir
-        match fs_extra::dir::copy(
+        if fs_extra::dir::copy(
             &template_dir,
             &current_dir,
             &DirCopyOptions::from(DirCopyOptions {
@@ -215,11 +215,8 @@ impl Cloup {
                 overwrite: options.overwrite,
                 ..DirCopyOptions::new()
             }),
-        ) {
-            Err(_) => {
-                eprintln!("Some files could not be written, to overwrite add the {} flag to the same command", "-o".to_string().bright_purple())
-            }
-            _ => (),
+        ).is_err() {
+            eprintln!("Some files could not be written, to overwrite add the {} flag to the same command", "-o".to_string().bright_purple())
         }
 
         println!(
