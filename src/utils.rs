@@ -94,9 +94,6 @@ impl Cloup {
                 ErrorKind::PermissionDenied => {
                     eprintln!("Permission denied when creating config directory")
                 }
-                ErrorKind::AlreadyExists => {
-                    eprintln!("Config directory already exists")
-                }
                 _ => (),
             }
         }
@@ -108,11 +105,18 @@ impl Cloup {
             format!("template_dir={:?}", current_dir),
         )
         .expect("An error occurred when writing config file");
+
+        println!("📚 Successfully made this the template directory for cloups");
     }
 
     pub fn create(&self, name: &str, files: Vec<String>) {
         let current_dir = &self.current_dir;
         let template_dir = self.template_dir.join(&name);
+
+        if name.starts_with('.') {
+            eprintln!("Name of template should not start with a dot");
+            process::exit(1);
+        }
 
         if fs::create_dir(&template_dir).is_err() {
             eprintln!("Template {} already exists", &name.bright_purple());
