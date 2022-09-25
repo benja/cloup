@@ -12,8 +12,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     let cloup = Cloup::new();
 
-    // println!("{} {:#?}", "Command ran:".bright_purple(), &command);
-
     match command {
         Command::Init { name } => Cloup::init(env::current_dir()?, name),
         Command::Create { name, files } => cloup.create(&name, files),
