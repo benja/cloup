@@ -84,7 +84,7 @@ impl Cloup {
         }
     }
 
-    pub fn init(current_dir: PathBuf, _namespace: Option<String>) {
+    pub fn init(current_dir: PathBuf, _namespace: &Option<String>) {
         let config_dirname = dirs::data_dir()
             .expect("Data directory not found")
             .join("cloup");
@@ -187,7 +187,7 @@ impl Cloup {
                 ..DirCopyOptions::new()
             }),
         )
-        .inspect_err(|_| {
+        .map_err(|_| {
             eprintln!(
                 "Some files could not be written, to overwrite add the {} flag to the same command",
                 "-o".to_string().bright_purple()
@@ -259,7 +259,7 @@ impl Cloup {
         // If no file is specified, we are working with a folder
         if let None = file {
             fs_extra::dir::copy(file_path, &template_dir, &DirCopyOptions::new())
-                .inspect_err(|e| {
+                .map_err(|e| {
                     eprintln!("{}", e);
                     process::exit(1);
                 })
@@ -284,7 +284,7 @@ impl Cloup {
                 ..Default::default()
             }),
         )
-        .inspect_err(|e| {
+        .map_err(|e| {
             fs::remove_dir(&template_dir).expect("Should be allowed to remove dir");
             eprintln!("{}", e);
             process::exit(1);
