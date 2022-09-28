@@ -2,8 +2,8 @@
 
 # cloup
 
-[![Downloads][downloads-badge]][releases]
-[![License][license-badge]][license]
+![Downloads][downloads-badge]
+![License][license-badge]
 
 cloup is a **template manager** that delivers the files you desire when you need them, written in rust
 
