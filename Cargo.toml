@@ -2,6 +2,9 @@
 name = "cloup"
 version = "0.1.1"
 edition = "2021"
+description = "Cloup is a template manager that provides the files you desire when you need them"
+homepage = "https://github.com/benja/cloup"
+repository = "https://github.com/benja/cloup"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
