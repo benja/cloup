@@ -2,6 +2,7 @@
 name = "cloup"
 version = "0.1.1"
 edition = "2021"
+license = "AGPL-3.0"
 description = "Cloup is a template manager that provides the files you desire when you need them"
 homepage = "https://github.com/benja/cloup"
 repository = "https://github.com/benja/cloup"
