@@ -107,13 +107,19 @@ Now you can apply this cloup to any new empty folder with `$ cloup apply base-te
 
 ## Installation
 
-As of now, the only way to install Cloup is with homebrew. In the near future, there will be more ways to install and use it.
+Cloup is currently only available through Homebrew and Cargo. Other methods of installation are on the way!
 
-### With homebrew
+### with homebrew
 
 ```
-brew tap benja/tap
-brew install cloup
+$ brew tap benja/tap
+$ brew install cloup
+```
+
+#### with cargo
+
+```
+$ cargo install cloup
 ```
 
 ## Setup
