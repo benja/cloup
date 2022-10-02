@@ -14,4 +14,6 @@ clap = { version = "3.2.22", features = ["derive"] }
 colored = "2.0.0"
 dirs = "4.0.0"
 fs_extra = "1.2.0"
+serde = { version = "1.0.145", features = ["derive"] }
+toml = "0.5.9"
 

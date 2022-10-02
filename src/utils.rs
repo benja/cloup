@@ -6,55 +6,65 @@ use std::{
     process::{self},
 };
 
-pub struct Cloup {
+use crate::commands::init::Config;
+
+#[derive(Debug)]
+pub struct ParsedConfig {
+    pub raw: Config,
     pub current_dir: PathBuf,
-    pub template_dir: PathBuf,
-    // TODO: ignored_paths: Vec<String>,
+    pub default_template_dir: PathBuf,
 }
 
-pub fn get_config() -> Cloup {
-    let template_dir = template_dir();
-    let current_dir = env::current_dir();
-
-    if template_dir.is_err() {
-        eprint!(
-            "Please run {} to initialise a template folder before creating cloups",
-            "cloup init".bright_purple()
-        );
-        process::exit(1);
-    }
-
-    if current_dir.is_err() {
-        eprint!("Current directory might not exist or have the required permissions to continue");
-        process::exit(1);
-    }
-
-    Cloup {
-        current_dir: current_dir.unwrap(),
-        template_dir: template_dir.unwrap(),
-    }
-}
-
-pub fn template_dir() -> Result<PathBuf, String> {
-    let cloup_config_dir = dirs::data_dir()
-        .expect("Data directory could not be found")
+pub fn get_config() -> ParsedConfig {
+    // read from config (from v.0.2.0 we changed the type of config, so parse error might happen)
+    let dir = dirs::config_dir()
+        .expect("Config dir could not be found")
         .join("cloup");
 
-    if fs::read_dir(&cloup_config_dir).is_err() {
-        return Err("Please run `cloup init` first in a template directory".to_string());
+    // cloup init has to be ran before we can parse a config
+    if fs::read_dir(&dir).is_err() {
+        eprintln!("Please run `cloup init` first in a template directory");
+        process::exit(1);
     }
 
-    let mut content = match fs::read_to_string(cloup_config_dir.join(".config")) {
+    // cloup config file location
+    let file = dir.join(".config");
+
+    // parse and serialize content
+    let content = match fs::read_to_string(file) {
         Ok(c) => c,
-        Err(_) => return Err("Config could not be parsed".to_string()),
+        Err(_) => {
+            eprintln!("Config could not be parsed");
+            process::exit(1);
+        }
     };
 
-    if content.len() > 13 {
-        content.replace_range(0..13, "");
-        content = content.replace('"', "");
-    }
+    let content: Config = match toml::from_str(&content) {
+        Ok(c) => c,
+        Err(_) => {
+            eprintln!(
+                "You're running an outdated config, please use {} again in your template directory",
+                "cloup init".bright_purple()
+            );
+            process::exit(1);
+        }
+    };
 
-    Ok(PathBuf::from(content))
+    let current_dir = env::current_dir()
+        .expect("Current directory might not exist or have the required permissions to continue");
+
+    ParsedConfig {
+        default_template_dir: PathBuf::from(
+            &content
+                .locations
+                .iter()
+                .find(|l| l.default)
+                .expect("Default dir could not be found")
+                .path,
+        ),
+        raw: content,
+        current_dir,
+    }
 }
 
 pub fn copy_file_to_template(file_path: &PathBuf, template_dir: &PathBuf, file: Option<&String>) {

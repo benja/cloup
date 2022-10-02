@@ -12,7 +12,7 @@ pub fn run(name: &str, options: CreateCommands) {
     let config = get_config();
 
     let current_dir = config.current_dir;
-    let template_dir = config.template_dir.join(&name);
+    let template_dir = config.default_template_dir.join(&name);
 
     if name.starts_with('.') {
         eprintln!("Name of template should not start with a dot");

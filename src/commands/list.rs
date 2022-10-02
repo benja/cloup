@@ -7,7 +7,7 @@ use crate::utils::get_config;
 pub fn run() {
     let config = get_config();
 
-    let folders: Vec<_> = fs::read_dir(config.template_dir)
+    let folders: Vec<_> = fs::read_dir(config.default_template_dir)
     .expect("Template folder does not exist. Run `cloup init` in a folder to set it up as a template folder.")
     .filter(|f| f.as_ref().map(|f| !f.file_name().to_string_lossy().starts_with('.')).unwrap_or(false)).collect();
 

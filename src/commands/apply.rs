@@ -8,7 +8,7 @@ use crate::{cli::ApplyCommands, utils::get_config};
 pub fn run(name: &str, options: ApplyCommands) {
     let config = get_config();
 
-    let template_dir = config.template_dir.join(&name);
+    let template_dir = config.default_template_dir.join(&name);
 
     if !template_dir.is_dir() {
         eprint!(

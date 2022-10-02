@@ -7,7 +7,7 @@ use crate::utils::get_config;
 pub fn run(name: &str) {
     let config = get_config();
 
-    let folder = config.template_dir.join(&name);
+    let folder = config.default_template_dir.join(&name);
 
     if !folder.is_dir() {
         eprintln!("Template {} does not exist", &name.bright_purple());
