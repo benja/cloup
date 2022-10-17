@@ -45,20 +45,12 @@ jobs:
       - name: Lint
         run: |
           cargo fmt -- --check
-          cargo clippy
+          cargo clippy -- -D warnings
   full_ci:
     needs: build_and_cache_rust
     strategy:
       matrix:
         toolchain: [ 'stable', 'nightly' ]
-          #target: [
-          # Mac
-          #"aarch64-apple-darwin",
-          # Linux
-          #"aarch64-unknown-linux-gnu", "x86_64-unknown-linux-gnu",
-          # Windows
-          #"x86_64-pc-windows-gnu",
-          #]
         os: [ubuntu-22.04, ubuntu-20.04, macos-12, macos-11, windows-2022, macos-2019]
     runs-on: ${{ matrix.os }}
     steps:
