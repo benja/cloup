@@ -1,39 +1,19 @@
 use std::{env, fs, io::ErrorKind};
 
-use serde::{Deserialize, Serialize};
+use crate::{constants::CONFIG_FILENAME, utils::create_default_location};
 
-use crate::cli::InitCommands;
+use crate::utils::{get_config, Location};
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Config {
-    pub locations: Vec<Location>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Location {
-    pub default: bool,
-    pub namespace: String,
-    pub path: String,
-}
-
-pub fn run(options: InitCommands) {
-    // 1. read config, does it exist already? if so, we want to push a new location into config (provided they)
-    // specified a namespace. if they did not specify a namespace, we want to overwrite / update the existing
-    // default location. not everyone is gonna use namespaces, so we want to operate like before, where you could
-    // only set one template_dir location
-    // if config exists, read config and push to it with namespace
-    // let config = get_config();
-
-    // init should be responsible for setting up the initial version of the config
-
-    // on install, for anyone that used `dirs::data_dir()` we have to migrate over to new config file
-
-    // where config file is stored
+pub fn run() {
+    // folder path (string) for where the config file will be stored
     let config_dirname = dirs::config_dir()
         .expect("Config directory not found")
         .join("cloup");
 
-    // create config file
+    // config file path
+    let config_path = config_dirname.join(CONFIG_FILENAME);
+
+    // create config folder from string
     if let Err(e) = fs::create_dir(&config_dirname) {
         match e.kind() {
             ErrorKind::PermissionDenied => {
@@ -43,21 +23,52 @@ pub fn run(options: InitCommands) {
         }
     }
 
-    // TODO: Improve config file, use config-managable crate for this
-    let file = toml::to_string(&Config {
-        locations: vec![Location {
-            default: true,
-            namespace: options.namespace.unwrap_or("".to_string()),
-            path: env::current_dir()
-                .expect("Current dir should exist")
-                .to_string_lossy()
-                .to_string(),
-        }],
-    })
-    .unwrap();
+    // Attempt to read existing config, if this errors there might be no config yet
+    // and we have to handle the creation of a new config, or if there is a config
+    // already, we want to push this location into the list, provided the namespace
+    // does not collide with an existing namespace, if it collides we can either
+    // overwrite location and namespace or provide a warning message
+    let config = get_config();
 
-    fs::write(config_dirname.join(".config"), file)
-        .expect("An error occurred when writing config file");
+    let path = env::current_dir()
+        .expect("Current dir should exist")
+        .to_string_lossy()
+        .to_string();
 
-    println!("📚 Successfully made this the template directory for cloups");
+    match config {
+        Ok(mut config) => {
+            let default_namespace_exists = config
+                .raw
+                .locations
+                .iter()
+                .find(|l| l.namespace == "default")
+                .is_some();
+
+            if default_namespace_exists {
+                config
+                    .raw
+                    .locations
+                    .iter_mut()
+                    .find(|l| l.namespace == "default")
+                    .map(|l| l.path = path.clone());
+            } else {
+                // there may be other namespaces, just not the default one
+                config.raw.locations.push(Location {
+                    default: false,
+                    namespace: "default".to_string(),
+                    path: path.clone(),
+                });
+            }
+
+            fs::write(
+                config_dirname.join(".config"),
+                toml::to_string(&config.raw).unwrap(),
+            )
+            .expect("An error occurred when writing config file");
+
+            println!("📚 Successfully created default template directory");
+        }
+        // if config didn't already exist, create config with default namespace and path
+        Err(_) => create_default_location(&config_path, "default", &path),
+    }
 }

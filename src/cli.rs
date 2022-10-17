@@ -9,11 +9,7 @@ pub struct Cli {
 #[derive(Subcommand, Debug)]
 pub enum Command {
     /// Initialise folder to store cloups in, only need to run once
-    Init {
-        /// Namespace to store this under
-        #[clap(short, long)]
-        namespace: Option<String>,
-    },
+    Init,
     /// Create a new cloup
     Create {
         /// Name of cloup
@@ -39,11 +35,24 @@ pub enum Command {
     },
     /// List all available cloups
     List,
-    // /// See namespaces
-    //     Namespaces {
-    //         /// Set a namespace as default
-    //         name: Option<String>,
-    //     },
+    // Interact with namespaces
+    Namespace {
+        /// Create namespace with name
+        #[clap(short, long)]
+        create: String,
+
+        /// Delete namespace
+        #[clap(short, long)]
+        delete: String,
+
+        /// Set namespace as default
+        #[clap(short, long)]
+        r#use: String,
+
+        /// List all namespaces
+        #[clap(short, long)]
+        list: String,
+    },
 }
 
 pub struct ApplyCommands {
@@ -54,6 +63,6 @@ pub struct CreateCommands {
     pub files: Vec<String>,
 }
 
-pub struct InitCommands {
-    pub namespace: Option<String>,
-}
+// pub struct NamespaceCommands {
+//     pub namespace: Option<String>,
+// }

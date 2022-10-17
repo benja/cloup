@@ -6,7 +6,7 @@ use fs_extra::dir;
 use crate::{cli::ApplyCommands, utils::get_config};
 
 pub fn run(name: &str, options: ApplyCommands) {
-    let config = get_config();
+    let config = get_config().unwrap();
 
     let template_dir = config.default_template_dir.join(&name);
 

@@ -5,7 +5,7 @@ use colored::Colorize;
 use crate::utils::get_config;
 
 pub fn run(name: &str) {
-    let config = get_config();
+    let config = get_config().unwrap();
 
     let folder = config.default_template_dir.join(&name);
 

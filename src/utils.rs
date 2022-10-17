@@ -1,13 +1,27 @@
 use colored::Colorize;
 use fs_extra::{dir, file};
+use serde::{Deserialize, Serialize};
+use std::io::ErrorKind;
 use std::{env, path::PathBuf};
 use std::{
     fs::{self},
     process::{self},
 };
 
-use crate::commands::init::Config;
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Config {
+    pub locations: Vec<Location>,
+}
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Location {
+    pub default: bool,
+    pub namespace: String,
+    pub path: String,
+}
+
+/// The config returned by [get_config]. Includes the raw config, your current directory and the default template directory (for storing cloups)
+/// so that we don't have to traverse the raw config every time we wish to access these values.
 #[derive(Debug)]
 pub struct ParsedConfig {
     pub raw: Config,
@@ -15,7 +29,14 @@ pub struct ParsedConfig {
     pub default_template_dir: PathBuf,
 }
 
-pub fn get_config() -> ParsedConfig {
+#[derive(Debug)]
+pub enum ConfigParseError {
+    OutdatedConfig,
+    CouldNotParse,
+    NotFound,
+}
+
+pub fn get_config() -> Result<ParsedConfig, ConfigParseError> {
     // read from config (from v.0.2.0 we changed the type of config, so parse error might happen)
     let dir = dirs::config_dir()
         .expect("Config dir could not be found")
@@ -23,8 +44,8 @@ pub fn get_config() -> ParsedConfig {
 
     // cloup init has to be ran before we can parse a config
     if fs::read_dir(&dir).is_err() {
-        eprintln!("Please run `cloup init` first in a template directory");
-        process::exit(1);
+        // eprintln!("Please run `cloup init` first in a template directory");
+        return Err(ConfigParseError::OutdatedConfig);
     }
 
     // cloup config file location
@@ -33,27 +54,27 @@ pub fn get_config() -> ParsedConfig {
     // parse and serialize content
     let content = match fs::read_to_string(file) {
         Ok(c) => c,
-        Err(_) => {
-            eprintln!("Config could not be parsed");
-            process::exit(1);
-        }
+        Err(e) => match e.kind() {
+            ErrorKind::NotFound => return Err(ConfigParseError::NotFound),
+            _ => return Err(ConfigParseError::CouldNotParse),
+        },
     };
 
     let content: Config = match toml::from_str(&content) {
         Ok(c) => c,
         Err(_) => {
-            eprintln!(
-                "You're running an outdated config, please use {} again in your template directory",
-                "cloup init".bright_purple()
-            );
-            process::exit(1);
+            // eprintln!(
+            //     "You're running an outdated config, please use {} again in your template directory",
+            //     "cloup init".bright_purple()
+            // );
+            return Err(ConfigParseError::OutdatedConfig);
         }
     };
 
     let current_dir = env::current_dir()
         .expect("Current directory might not exist or have the required permissions to continue");
 
-    ParsedConfig {
+    Ok(ParsedConfig {
         default_template_dir: PathBuf::from(
             &content
                 .locations
@@ -64,7 +85,7 @@ pub fn get_config() -> ParsedConfig {
         ),
         raw: content,
         current_dir,
-    }
+    })
 }
 
 pub fn copy_file_to_template(file_path: &PathBuf, template_dir: &PathBuf, file: Option<&String>) {
@@ -102,4 +123,22 @@ pub fn copy_file_to_template(file_path: &PathBuf, template_dir: &PathBuf, file: 
         process::exit(1);
     })
     .ok();
+}
+
+pub fn create_default_location(config_path: &PathBuf, namespace: &str, path: &str) {
+    fs::write(
+        config_path,
+        toml::to_string(&Config {
+            locations: vec![Location {
+                default: true,
+                namespace: namespace.to_string(),
+                path: path.to_string(),
+            }],
+        })
+        .unwrap(),
+    )
+    .expect("An error occurred when writing config file");
+
+    println!("📚 Successfully created default template directory for cloups");
+    process::exit(1);
 }

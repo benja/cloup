@@ -9,7 +9,7 @@ use crate::{
 };
 
 pub fn run(name: &str, options: CreateCommands) {
-    let config = get_config();
+    let config = get_config().unwrap();
 
     let current_dir = config.current_dir;
     let template_dir = config.default_template_dir.join(&name);
