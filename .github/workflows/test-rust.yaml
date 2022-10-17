@@ -51,14 +51,14 @@ jobs:
     strategy:
       matrix:
         toolchain: [ 'stable', 'nightly' ]
-        target: [
+          #target: [
           # Mac
-          "aarch64-apple-darwin",
+          #"aarch64-apple-darwin",
           # Linux
-          "aarch64-unknown-linux-gnu", "x86_64-unknown-linux-gnu",
+          #"aarch64-unknown-linux-gnu", "x86_64-unknown-linux-gnu",
           # Windows
-          "x86_64-pc-windows-gnu",
-        ]
+          #"x86_64-pc-windows-gnu",
+          #]
         os: [ubuntu-22.04, ubuntu-20.04, macos-12, macos-11, windows-2022, macos-2019]
     runs-on: ${{ matrix.os }}
     steps:
