@@ -59,8 +59,8 @@ pub fn run(name: &str, options: CreateCommands) {
     }
 
     println!(
-        "🚀 Successfully created cloup {} \n\n{}",
+        "🚀 Successfully created cloup {} \n\nApply this cloup with `cloup apply {}`",
         &name.to_string().bright_purple(),
-        format!("Apply this cloup with `cloup apply {}`", &name)
+        &name,
     );
 }
