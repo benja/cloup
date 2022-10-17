@@ -1,0 +1,34 @@
+name: Test the rust code
+
+on:
+  pull_request:
+
+jobs:
+  full_ci:
+    strategy:
+      matrix:
+        toolchain: [ 'stable', 'nightly' ]       
+        target: [
+          # Mac
+          "x86_64-apple-darwin", "aarch64-apple-darwin",
+          # Linux
+          "aarch64-unknown-linux-gnu",  "i686-unknown-linux-gnu", "x86_64-unknown-linux-gnu"
+          # Windows
+          "x86_64-pc-windows-gnu", "i686-pc-windows-gnu", "i686-pc-windows-msvc", "x86_64-pc-windows-msvc"
+        ]
+        os: [ubuntu-22.04, ubuntu-20.04,macos-12, macos-11, windows-2022, macos-2019]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: Install latest nightly
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.toolchain }}
+          override: true
+          target: ${{ matrix.target }}
+          components: rustfmt, clippy
+      - name: Run rust tests
+        run: cargo test
+
+# Rust target reference: https://doc.rust-lang.org/beta/rustc/platform-support.html#tier-1-with-host-tools
