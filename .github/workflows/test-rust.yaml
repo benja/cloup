@@ -69,8 +69,7 @@ jobs:
         run: |
           rustup update
           rustup component add clippy rustfmt
-          rustup install ${{matrix.toolchain}}          
-          rustup install
+          rustup install ${{ matrix.toolchain }}          
       - name: Toolchain info
         run: |
           cargo --version --verbose
