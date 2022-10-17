@@ -2,6 +2,9 @@ name: Test the rust code
 
 on:
   pull_request:
+  push:
+    branches:
+      - main
 
 jobs:
   build_and_cache_rust:
