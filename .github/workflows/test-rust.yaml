@@ -1,0 +1,72 @@
+name: Test the rust code
+
+on:
+  pull_request:
+
+jobs:
+  build_and_cache_rust:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: Update local toolchain
+        run: |
+          rustup update
+          rustup component add clippy rustfmt
+          rustup install stable          
+      - name: Toolchain info
+        run: |
+          cargo --version --verbose
+          rustc --version
+      - name: Fetch cargo deps
+        run: cargo fetch
+      - name: Run cargo build
+        run: cargo build
+      - name: Cache deps
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
+  lint:
+    needs: build_and_cache_rust
+    runs-on: ubuntu-22.04
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: Toolchain info
+        run: |
+          cargo --version --verbose
+          rustc --version
+      - name: Lint
+        run: |
+          cargo fmt -- --check
+          cargo clippy -- -D warnings
+  full_ci:
+    needs: build_and_cache_rust
+    strategy:
+      matrix:
+        toolchain: [ 'stable', 'nightly' ]
+        os: [ubuntu-22.04, ubuntu-20.04, macos-12, macos-11, windows-2022, macos-2019]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Update local toolchain
+        run: |
+          rustup update
+          rustup component add clippy rustfmt
+          rustup install ${{ matrix.toolchain }}          
+      - name: Toolchain info
+        run: |
+          cargo --version --verbose
+          rustc --version
+          cargo clippy --version     
+      - name: Run rust tests
+        run: cargo test --verbose
+
+# Rust target reference: https://doc.rust-lang.org/beta/rustc/platform-support.html#tier-1-with-host-tools
