@@ -4,7 +4,29 @@ on:
   pull_request:
 
 jobs:
+  build_and_cache_rust:
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: Install latest nightly
+        uses: actions-rs/toolchain@v1
+        with:
+          override: true
+          components: rustfmt, clippy
+      - name: Fetch cargo deps
+        run: cargo fetch
+      - uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: cargo-deps
+
   full_ci:
+    needs: build_and_cache_rust
     strategy:
       matrix:
         toolchain: [ 'stable', 'nightly' ]
