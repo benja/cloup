@@ -17,7 +17,8 @@ jobs:
           components: rustfmt, clippy
       - name: Fetch cargo deps
         run: cargo fetch
-      - uses: actions/cache@v3
+      - name: Cache deps
+        uses: actions/cache@v3
         with:
           path: |
             ~/.cargo/bin/
@@ -25,7 +26,7 @@ jobs:
             ~/.cargo/registry/cache/
             ~/.cargo/git/db/
             target/
-          key: cargo-deps
+          key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
 
   full_ci:
     needs: build_and_cache_rust
