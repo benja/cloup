@@ -75,6 +75,6 @@ jobs:
           rustc --version
           cargo clippy --version     
       - name: Run rust tests
-        run: cargo test --verbose --target=${{ matrix.target }}
+        run: cargo test --verbose
 
 # Rust target reference: https://doc.rust-lang.org/beta/rustc/platform-support.html#tier-1-with-host-tools
