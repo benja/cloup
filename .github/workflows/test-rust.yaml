@@ -45,8 +45,7 @@ jobs:
       - name: Lint
         run: |
           cargo fmt -- --check
-          cargo clippy -- -D warnings
-
+          cargo clippy
   full_ci:
     needs: build_and_cache_rust
     strategy:
