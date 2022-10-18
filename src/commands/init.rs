@@ -10,8 +10,11 @@ pub fn run(_namespace: Option<String>) {
         .join("cloup");
 
     if let Err(e) = fs::create_dir(&config_dirname) {
-        if e.kind() == ErrorKind::PermissionDenied {
-            eprintln!("Permission denied when creating config directory")
+        match e.kind() {
+            ErrorKind::PermissionDenied => {
+                eprintln!("Permission denied when creating config directory")
+            }
+            _ => (),
         }
     }
 
