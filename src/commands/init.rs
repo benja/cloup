@@ -10,7 +10,8 @@ pub fn run(_namespace: Option<String>) {
         .join("cloup");
 
     if let Err(e) = fs::create_dir(&config_dirname) {
-        #[allow(clippy::single_match)] match e.kind() {
+        #[allow(clippy::single_match)]
+        match e.kind() {
             ErrorKind::PermissionDenied => {
                 eprintln!("Permission denied when creating config directory")
             }
