@@ -29,10 +29,10 @@ pub fn run(name: &str, options: CreateCommands) {
         fs_extra::dir::copy(
             &current_dir,
             &template_dir,
-            &dir::CopyOptions::from(dir::CopyOptions {
+            &dir::CopyOptions {
                 content_only: true,
                 ..Default::default()
-            }),
+            },
         )
         .expect("Template could not be created based on folder");
     }
@@ -54,13 +54,13 @@ pub fn run(name: &str, options: CreateCommands) {
         copy_file_to_template(
             &file_path,
             &template_dir,
-            (!file_path.is_dir()).then(|| &file),
+            (!file_path.is_dir()).then_some(&file),
         );
     }
 
     println!(
-        "🚀 Successfully created cloup {} \n\n{}",
+        "🚀 Successfully created cloup {} \n\nApply this cloup with `cloup apply {}`",
         &name.to_string().bright_purple(),
-        format!("Apply this cloup with `cloup apply {}`", &name)
+        &name,
     );
 }

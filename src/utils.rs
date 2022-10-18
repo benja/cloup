@@ -59,7 +59,7 @@ pub fn template_dir() -> Result<PathBuf, String> {
 
 pub fn copy_file_to_template(file_path: &PathBuf, template_dir: &PathBuf, file: Option<&String>) {
     // If no file is specified, we are working with a folder
-    if let None = file {
+    if file.is_none() {
         fs_extra::dir::copy(file_path, &template_dir, &dir::CopyOptions::new())
             .map_err(|e| {
                 eprintln!("{}", e);
@@ -76,15 +76,15 @@ pub fn copy_file_to_template(file_path: &PathBuf, template_dir: &PathBuf, file: 
     template_path
         .parent()
         .filter(|p| !p.is_dir())
-        .map(|p| fs::create_dir_all(p));
+        .map(fs::create_dir_all);
 
     fs_extra::file::copy(
         &file_path,
         template_path,
-        &file::CopyOptions::from(file::CopyOptions {
+        &file::CopyOptions {
             overwrite: true,
             ..Default::default()
-        }),
+        },
     )
     .map_err(|e| {
         fs::remove_dir(&template_dir).expect("Should be allowed to remove dir");

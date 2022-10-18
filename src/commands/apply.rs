@@ -22,12 +22,12 @@ pub fn run(name: &str, options: ApplyCommands) {
     let _ = fs_extra::dir::copy(
         &template_dir,
         &config.current_dir,
-        &dir::CopyOptions::from(dir::CopyOptions {
+        &dir::CopyOptions {
             content_only: true,
             skip_exist: true,
             overwrite: options.overwrite,
             ..Default::default()
-        }),
+        },
     )
     .map_err(|_| {
         eprintln!(

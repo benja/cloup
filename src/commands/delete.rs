@@ -14,7 +14,7 @@ pub fn run(name: &str) {
         process::exit(1);
     }
 
-    if !fs::remove_dir_all(folder).is_ok() {
+    if fs::remove_dir_all(folder).is_err() {
         eprintln!("Was not able to delete template for some reason");
         process::exit(1);
     }
