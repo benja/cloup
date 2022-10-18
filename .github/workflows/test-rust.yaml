@@ -21,20 +21,8 @@ jobs:
         run: |
           cargo --version --verbose
           rustc --version
-      - name: Fetch cargo deps
-        run: cargo fetch
-      - name: Run cargo build
-        run: cargo build
-      - name: Cache deps
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            target/
-          key: ${{ runner.os }}-sbt-${{ hashFiles('**/build.sbt') }}
+      - name: Cache deps and target
+        uses: Swatinem/rust-cache@v2
   lint:
     needs: build_and_cache_rust
     runs-on: ubuntu-22.04
