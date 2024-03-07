@@ -1,74 +1,117 @@
-use std::{env, fs, io::ErrorKind};
+use crate::{
+    toml::data::{TomlValue, TomlValueKind},
+    utils::config::{get_config, ConfigError},
+};
+use std::{fs, io};
 
-use crate::{constants::CONFIG_FILENAME, utils::create_default_location};
+#[derive(Debug)]
+pub enum InitError {
+    Error(io::Error),
+    ConfigError(ConfigError),
+}
 
-use crate::utils::{get_config, Location};
+#[derive(Debug)]
+pub struct InitOpts {
+    // Overwrite path
+    pub overwrite: bool,
 
-pub fn run() {
-    // folder path (string) for where the config file will be stored
-    let config_dirname = dirs::config_dir()
-        .expect("Config directory not found")
-        .join("cloup");
+    // Workspace name
+    pub workspace: Option<String>,
+}
 
-    // config file path
-    let config_path = config_dirname.join(CONFIG_FILENAME);
+pub fn run(opts: InitOpts) -> Result<(), InitError> {
+    let mut config = get_config().map_err(InitError::ConfigError)?;
+    let mut toml = config.toml;
 
-    // create config folder from string
-    if let Err(e) = fs::create_dir(&config_dirname) {
-        match e.kind() {
-            ErrorKind::PermissionDenied => {
-                eprintln!("Permission denied when creating config directory")
-            }
-            _ => (),
-        }
+    // unless user is making a custom workspace
+    if config.initial_run && opts.workspace.is_none() {
+        println!(
+            "\x1b[1;32m»\x1b[0m Created new workspace for storing cloups: default ({}).",
+            config.current_dir.to_string_lossy()
+        );
+        return Ok(());
     }
 
-    // Attempt to read existing config, if this errors there might be no config yet
-    // and we have to handle the creation of a new config, or if there is a config
-    // already, we want to push this location into the list, provided the namespace
-    // does not collide with an existing namespace, if it collides we can either
-    // overwrite location and namespace or provide a warning message
-    let config = get_config();
+    // todo: don't panic, send error back
+    let active_workspace = config
+        .data
+        .find(|w| w.active)
+        .expect("Active workspace does not exist");
 
-    let path = env::current_dir()
-        .expect("Current dir should exist")
-        .to_string_lossy()
-        .to_string();
+    if opts.workspace.is_none() {
+        if !opts.overwrite {
+            println!(
+                "\x1b[1;33m»\x1b[0m Overwrite current location? (\x1b[1m{}: {}\x1b[0m)\n\x1b[1;33mNew location: {}\x1b[0m\nPass the '-o' flag to overwrite",
+                active_workspace.name,
+                active_workspace.location.to_string_lossy(),
+                config.current_dir.to_string_lossy()
+            );
+            return Ok(());
+        }
 
-    match config {
-        Ok(mut config) => {
-            let default_namespace_exists = config
-                .raw
-                .locations
-                .iter()
-                .find(|l| l.namespace == "default")
-                .is_some();
-
-            if default_namespace_exists {
-                config
-                    .raw
-                    .locations
-                    .iter_mut()
-                    .find(|l| l.namespace == "default")
-                    .map(|l| l.path = path.clone());
-            } else {
-                // there may be other namespaces, just not the default one
-                config.raw.locations.push(Location {
-                    default: false,
-                    namespace: "default".to_string(),
-                    path: path.clone(),
+        if let Some(TomlValueKind::Table(key_values)) = toml.get_mut("workspaces") {
+            key_values
+                .iter_mut()
+                .find(|w| w.key == active_workspace.name)
+                .map(|w| {
+                    if let TomlValueKind::String(value) = &mut w.kind {
+                        *value = config.current_dir.to_string_lossy().to_string();
+                    }
+                    w
                 });
+        }
+
+        println!(
+            "\x1b[1;32m»\x1b[0m New location for {}: {}",
+            active_workspace.name,
+            config.current_dir.to_string_lossy()
+        );
+
+        return fs::write(config.config_path, toml.to_toml()).map_err(InitError::Error);
+    }
+
+    // workspace MUST have been passed
+    let name = opts.workspace.unwrap();
+    if let Some(TomlValueKind::Table(key_values)) = toml.get_mut("workspaces") {
+        let workspace = key_values.iter_mut().find(|w| w.key == name);
+
+        // check if workspace exists
+        // if does NOT exist, prompt to CREATE new workspace
+        // if does exist, "to overwrite htis..."
+
+        // create workspace (it doesn't exist)
+        if workspace.is_none() {
+            println!(
+                "\x1b[1;32m»\x1b[0m Created new workspace: {name}\nTo change to this workspace, use 'cloup workspace {name}'",
+            );
+
+            key_values.push(TomlValue {
+                key: name.clone(),
+                kind: TomlValueKind::String(config.current_dir.to_string_lossy().to_string()),
+            });
+
+            return fs::write(&config.config_path, toml.to_toml()).map_err(InitError::Error);
+        };
+
+        // overwrite existing workspace
+        let workspace = workspace.unwrap();
+        if !opts.overwrite {
+            if let TomlValueKind::String(value) = &workspace.kind {
+                println!(
+                    "\x1b[1;33m»\x1b[0m Overwrite current location? (\x1b[1m{}: {}\x1b[0m)\n\x1b[1;33mNew location: {}\x1b[0m\nPass the '-o' flag to overwrite",
+                    name,
+                    value,
+                    config.current_dir.to_string_lossy()
+                );
             }
 
-            fs::write(
-                config_dirname.join(".config"),
-                toml::to_string(&config.raw).unwrap(),
-            )
-            .expect("An error occurred when writing config file");
-
-            println!("📚 Successfully created default template directory");
+            return Ok(());
+        } else if let TomlValueKind::String(value) = &mut workspace.kind {
+            *value = config.current_dir.to_string_lossy().to_string();
         }
-        // if config didn't already exist, create config with default namespace and path
-        Err(_) => create_default_location(&config_path, "default", &path),
+    } else {
+        return Err(InitError::ConfigError(ConfigError::KeyMissing));
     }
+
+    fs::write(&config.config_path, toml.to_toml()).map_err(InitError::Error)
 }

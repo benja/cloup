@@ -1,5 +1,0 @@
-- cloup namespaces (so you can distinguish between work and life)
-- sharing cloups through gists
-    - pulling down cloups to your template folder through a gist url
-
-- syntactial sugar for namespaces (using @, e.g. `cloup apply work@prettier` would be equivalent to `cloup apply prettier -n work`)

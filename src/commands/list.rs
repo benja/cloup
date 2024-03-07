@@ -1,51 +1,43 @@
-use std::fs;
+use crate::utils::config::{get_config, ConfigError};
 
-use colored::Colorize;
+#[derive(Debug)]
+pub enum ListError {
+    ConfigError(ConfigError),
+}
 
-use crate::utils::get_config;
+pub fn run() -> Result<(), ListError> {
+    let config = get_config().map_err(ListError::ConfigError)?;
 
-// TODO: List command is not properly displaying the available cloups in the workspaces. Default should also be a "namespace"
+    let workspace = config
+        .data
+        .workspaces
+        .iter()
+        .find(|w| w.active)
+        .expect("Must have an active workspace");
 
-pub fn run() {
-    let config = get_config().unwrap();
-
-    println!("\nYour available cloups:\n");
-
-    for location in config.raw.locations {
-        let folders: Vec<_> = fs::read_dir(location.path)
-        .expect("Template folder does not exist. Run `cloup init` in a folder to set it up as a template folder.")
-        .filter(|f| f.as_ref().map(|f| !f.file_name().to_string_lossy().starts_with('.'))
-        .unwrap_or(false)).collect();
-
-        if folders.is_empty() {
-            if location.namespace.len() > 0 {
-                eprintln!("\n {}", location.namespace.bright_blue());
+    let cloups = std::fs::read_dir(&workspace.location)
+        .expect("Could not read directory")
+        .filter_map(|entry| {
+            let entry = entry.expect("Could not read entry");
+            if entry.file_name() == ".DS_Store" {
+                None
             } else {
-                eprint!("\n {}", "Default".bright_blue())
+                Some(entry.file_name())
             }
+        })
+        .collect::<Vec<_>>();
 
-            eprintln!(
-                "\nYou have no cloups, create one with {} {}",
-                "cloup create <name> -n".bright_purple(),
-                location.namespace.bright_purple()
-            );
-        } else {
-            for folder in folders {
-                println!(
-                    "— {}",
-                    folder
-                        .unwrap()
-                        .file_name()
-                        .to_string_lossy()
-                        .to_string()
-                        .bright_purple()
-                );
-            }
+    if cloups.is_empty() {
+        println!("\x1b[1;33m»\x1b[0m No cloups in workspace.")
+    } else {
+        println!(
+            "\x1b[1;32m»\x1b[0m Cloups in workspace {:?}:",
+            workspace.name
+        );
+        for cloup in cloups {
+            println!("\x1b[1m{}\x1b[0m", cloup.to_string_lossy());
         }
     }
 
-    println!(
-        "\nYou can apply a cloup with with {}",
-        "cloup apply <name>".bright_purple()
-    );
+    Ok(())
 }

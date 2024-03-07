@@ -1,0 +1,5 @@
+default_dir = "/Users/benja/Desktop"
+
+[workspaces]
+home = "/Users/benja/Desktop"
+work = "/Users/benja/code/work"
