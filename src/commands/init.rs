@@ -10,6 +10,16 @@ pub enum InitError {
     ConfigError(ConfigError),
 }
 
+impl std::fmt::Display for InitError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            InitError::Error(e) => write!(f, "Error: {}", e),
+            InitError::ConfigError(e) => write!(f, "Config error: {}", e),
+        }
+    }
+}
+impl std::error::Error for InitError {}
+
 #[derive(Debug)]
 pub struct InitOpts {
     // Overwrite path
@@ -41,10 +51,9 @@ pub fn run(opts: InitOpts) -> Result<(), InitError> {
     if opts.workspace.is_none() {
         if !opts.overwrite {
             println!(
-                "\x1b[1;33m»\x1b[0m Overwrite current location? (\x1b[1m{}: {}\x1b[0m)\n\x1b[1;33mNew location: {}\x1b[0m\nPass the '-o' flag to overwrite",
+                "\x1b[1;33m»\x1b[0m Overwrite existing location? (\x1b[1m{}: {}\x1b[0m)\n\nPass the '-o' flag to overwrite",
                 active_workspace.name,
                 active_workspace.location.to_string_lossy(),
-                config.current_dir.to_string_lossy()
             );
             return Ok(());
         }
@@ -62,7 +71,7 @@ pub fn run(opts: InitOpts) -> Result<(), InitError> {
         }
 
         println!(
-            "\x1b[1;32m»\x1b[0m New location for {}: {}",
+            "\x1b[1;32m»\x1b[0m New location for workspace {}: ({})",
             active_workspace.name,
             config.current_dir.to_string_lossy()
         );
@@ -82,7 +91,7 @@ pub fn run(opts: InitOpts) -> Result<(), InitError> {
         // create workspace (it doesn't exist)
         if workspace.is_none() {
             println!(
-                "\x1b[1;32m»\x1b[0m Created new workspace: {name}\nTo change to this workspace, use 'cloup workspace {name}'",
+                "\x1b[1;32m»\x1b[0m Created new workspace for storing cloups: {name}\n\nTo change to this workspace, use 'cloup workspace {name}'",
             );
 
             key_values.push(TomlValue {
@@ -98,10 +107,9 @@ pub fn run(opts: InitOpts) -> Result<(), InitError> {
         if !opts.overwrite {
             if let TomlValueKind::String(value) = &workspace.kind {
                 println!(
-                    "\x1b[1;33m»\x1b[0m Overwrite current location? (\x1b[1m{}: {}\x1b[0m)\n\x1b[1;33mNew location: {}\x1b[0m\nPass the '-o' flag to overwrite",
+                    "\x1b[1;33m»\x1b[0m Overwrite current location? (\x1b[1m{}: {}\x1b[0m)\n\nPass the '-o' flag to overwrite",
                     name,
                     value,
-                    config.current_dir.to_string_lossy()
                 );
             }
 

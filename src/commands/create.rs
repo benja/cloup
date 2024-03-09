@@ -10,13 +10,25 @@ use crate::utils::{
 
 #[derive(Debug)]
 pub enum CreateError {
-    SourceNotFound,
     DestinationNotFound,
     NameExists,
     Error(std::io::Error),
     ConfigError(ConfigError),
     FileError(FileError),
 }
+
+impl std::fmt::Display for CreateError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            CreateError::DestinationNotFound => write!(f, "Destination not found"),
+            CreateError::NameExists => write!(f, "Name already exists"),
+            CreateError::Error(e) => write!(f, "Error: {}", e),
+            CreateError::ConfigError(e) => write!(f, "Config error: {}", e),
+            CreateError::FileError(e) => write!(f, "File error: {}", e),
+        }
+    }
+}
+impl std::error::Error for CreateError {}
 
 #[derive(Debug)]
 pub struct CreateOpts {
@@ -48,16 +60,7 @@ pub fn run(opts: CreateOpts) -> Result<(), CreateError> {
             .map(|f| config.current_dir.join(f))
             .collect();
 
-        println!(
-            "\x1b[1;32mCopying from {} files\x1b[0m\n",
-            if files.is_empty() {
-                "current directory"
-            } else {
-                "specified"
-            }
-        );
-
-        let cloup_path = workspace.location.join(&opts.name);
+        let cloup_path = workspace.location.join(format!("cl_{}", &opts.name));
         if cloup_path.exists() {
             return Err(CreateError::NameExists);
         } else {
@@ -76,8 +79,8 @@ pub fn run(opts: CreateOpts) -> Result<(), CreateError> {
         }
 
         println!(
-            "\x1b[1;33mCreated cloup {:?} in {:?}\x1b[0m",
-            opts.name, cloup_path
+            "\x1b[1;32m»\x1b[0m Created cloup '{}' in workspace '{}'",
+            opts.name, workspace.name,
         );
 
         Ok(())

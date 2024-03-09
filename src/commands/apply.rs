@@ -1,5 +1,3 @@
-use std::fs;
-
 use crate::utils::{
     config::{get_config, ConfigError, Workspace},
     file::{self, FileError},
@@ -8,11 +6,20 @@ use crate::utils::{
 #[derive(Debug)]
 pub enum ApplyError {
     NotFound,
-    NameDoesNotExist,
-    Error(std::io::Error),
     ConfigError(ConfigError),
     FileError(FileError),
 }
+
+impl std::fmt::Display for ApplyError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            ApplyError::NotFound => write!(f, "Workspace not found"),
+            ApplyError::ConfigError(e) => write!(f, "Config error: {}", e),
+            ApplyError::FileError(e) => write!(f, "File error: {}", e),
+        }
+    }
+}
+impl std::error::Error for ApplyError {}
 
 #[derive(Debug)]
 pub struct ApplyOpts {
@@ -27,7 +34,7 @@ pub fn run(opts: ApplyOpts) -> Result<(), ApplyError> {
     let config = get_config().map_err(ApplyError::ConfigError)?;
 
     if let Some(workspace) = find_workspace(&opts, &config.data.workspaces) {
-        let cloup_path = workspace.location.join(&opts.name);
+        let cloup_path = workspace.location.join(format!("cl_{}", &opts.name));
 
         // we want to take all files in the cloup path and copy them to the current directory
         if cloup_path.exists() {
@@ -44,10 +51,11 @@ pub fn run(opts: ApplyOpts) -> Result<(), ApplyError> {
         }
 
         println!(
-            "\x1b[1;33m»\x1b[0m Cloup \x1b[1m{}\x1b[0m does not exist in workspace \x1b[1m\"{}\"\x1b[0m",
-            &opts.name, workspace.name);
+            "\x1b[1;33m»\x1b[0m Cloup \x1b[1m{}\x1b[0m does not exist in workspace '{}'",
+            &opts.name, workspace.name
+        );
 
-        Err(ApplyError::NameDoesNotExist)
+        Ok(())
     } else {
         Err(ApplyError::NotFound)
     }

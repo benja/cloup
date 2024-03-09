@@ -58,7 +58,6 @@ pub enum ConfigError {
 
     /// Config contents errors
     KeyMissing,
-    KeyExists,
     UnexpectedValue,
 }
 
@@ -72,7 +71,6 @@ impl std::fmt::Display for ConfigError {
             ),
             ConfigError::FileParseError => write!(f, "Config file parse error"),
             ConfigError::KeyMissing => write!(f, "Key missing in config file"),
-            ConfigError::KeyExists => write!(f, "Key already exists in config file"),
             ConfigError::UnexpectedValue => write!(f, "Key present, but value was unexpected"),
         }
     }

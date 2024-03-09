@@ -7,9 +7,23 @@ use crate::{
 
 #[derive(Debug)]
 pub enum WorkspaceError {
+    NotFound,
     Error(std::io::Error),
     ConfigError(ConfigError),
 }
+
+impl std::fmt::Display for WorkspaceError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            WorkspaceError::NotFound => {
+                write!(f, "Workspace not found. Use the '-c' flag to create it")
+            }
+            WorkspaceError::Error(e) => write!(f, "Error: {}", e),
+            WorkspaceError::ConfigError(e) => write!(f, "Config error: {}", e),
+        }
+    }
+}
+impl std::error::Error for WorkspaceError {}
 
 #[derive(Debug)]
 pub struct WorkspaceOpts {
@@ -30,14 +44,10 @@ pub fn run(opts: WorkspaceOpts) -> Result<(), WorkspaceError> {
     if opts.list {
         config.data.workspaces.iter().for_each(|w| {
             println!(
-                "\x1b[1;33m»\x1b[0m \x1b[1;33m{}\x1b[0m: {} {}",
+                "{}{}: {}",
+                if w.active { "\x1b[1;33m»\x1b[0m " } else { "" },
                 w.name,
                 w.location.to_string_lossy(),
-                if w.active {
-                    "(\x1b[1;32mActive\x1b[0m)"
-                } else {
-                    ""
-                }
             );
         });
         return Ok(());
@@ -57,18 +67,21 @@ pub fn run(opts: WorkspaceOpts) -> Result<(), WorkspaceError> {
                 }
 
                 fs::write(config.config_path, toml.to_toml()).map_err(WorkspaceError::Error)?;
-                println!("Workspace \x1b[1;33m{}\x1b[0m created", name);
+                println!(
+                    "\x1b[1;33m»\x1b[0m Workspace \x1b[1;33m{}\x1b[0m created",
+                    name
+                );
                 return Ok(());
             }
 
-            return Err(WorkspaceError::Error(std::io::Error::new(
-                std::io::ErrorKind::NotFound,
-                "Workspace not found",
-            )));
+            return Err(WorkspaceError::NotFound);
         }
 
         if opts.create {
-            println!("Workspace \x1b[1;33m{}\x1b[0m already exists", name);
+            println!(
+                "\x1b[1;33m»\x1b[0m Workspace \x1b[1;33m{}\x1b[0m already exists",
+                name
+            );
             return Ok(());
         }
 
@@ -77,7 +90,10 @@ pub fn run(opts: WorkspaceOpts) -> Result<(), WorkspaceError> {
         }
 
         fs::write(config.config_path, toml.to_toml()).map_err(WorkspaceError::Error)?;
-        println!("Workspace set to \x1b[1;33m{}\x1b[0m", name);
+        println!(
+            "\x1b[1;33m»\x1b[0m The active workspace has been set to \x1b[1;33m{}\x1b[0m",
+            name
+        );
         return Ok(());
     }
 

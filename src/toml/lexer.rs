@@ -62,7 +62,14 @@ impl<'a> Lexer<'a> {
 
     /// Check if character is a valid value character
     fn is_value_char(&self, c: char) -> bool {
-        c.is_ascii_alphanumeric() || c == '"' || c == '_' || c == '\'' || c == '/' || c == '.'
+        c.is_ascii_alphanumeric()
+            || c == '"'
+            || c == '_'
+            || c == '\''
+            || c == '/'
+            || c == '.'
+            || c == '-'
+            || c == ':'
     }
 
     /// Tokenize the input and return the next token
@@ -128,7 +135,7 @@ impl<'a> Lexer<'a> {
                 // Keep reading characters until a non-value character is encountered
                 // We peek at the next character to avoid consuming it unless it is a value character
                 while let Some(next_char) = self.peek_char() {
-                    if self.is_value_char(next_char) {
+                    if self.is_value_char(next_char) || next_char == ' ' {
                         value.push(self.consume_char().unwrap());
                     } else {
                         break;

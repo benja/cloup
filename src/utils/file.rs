@@ -5,9 +5,18 @@ use std::{
 
 #[derive(Debug)]
 pub enum FileError {
-    NotFound,
     Error(std::io::Error),
 }
+
+impl std::fmt::Display for FileError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            FileError::Error(e) => write!(f, "Error: {}", e),
+        }
+    }
+}
+
+impl std::error::Error for FileError {}
 
 pub fn copy_recursive(
     source: &Path,
