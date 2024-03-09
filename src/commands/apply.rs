@@ -1,49 +1,72 @@
-use std::process;
+use crate::utils::{
+    config::{get_config, ConfigError, Workspace},
+    file::{self, FileError},
+};
 
-use colored::Colorize;
-use fs_extra::dir;
+#[derive(Debug)]
+pub enum ApplyError {
+    NotFound,
+    ConfigError(ConfigError),
+    FileError(FileError),
+}
 
-use crate::{cli::ApplyCommands, utils::get_config};
-
-pub fn run(name: &str, options: ApplyCommands) {
-    let config = get_config();
-
-    let template_dir = config.template_dir.join(&name);
-
-    if !template_dir.is_dir() {
-        eprint!(
-            "A cloup with the name {} does not exist",
-            &name.to_string().bright_purple()
-        );
-        process::exit(1);
+impl std::fmt::Display for ApplyError {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        match self {
+            ApplyError::NotFound => write!(f, "Workspace not found"),
+            ApplyError::ConfigError(e) => write!(f, "Config error: {}", e),
+            ApplyError::FileError(e) => write!(f, "File error: {}", e),
+        }
     }
+}
+impl std::error::Error for ApplyError {}
 
-    // copy all files from the template dir to current dir
-    let _ = fs_extra::dir::copy(
-        &template_dir,
-        &config.current_dir,
-        &dir::CopyOptions::from(dir::CopyOptions {
-            content_only: true,
-            skip_exist: true,
-            overwrite: options.overwrite,
-            ..Default::default()
-        }),
-    )
-    .map_err(|_| {
-        eprintln!(
-            "Some files could not be written, to overwrite add the {} flag to the same command",
-            "-o".to_string().bright_purple()
+#[derive(Debug)]
+pub struct ApplyOpts {
+    // Name of cloup
+    pub name: String,
+
+    // Workspace to create cloup in
+    pub workspace: Option<String>,
+}
+
+pub fn run(opts: ApplyOpts) -> Result<(), ApplyError> {
+    let config = get_config().map_err(ApplyError::ConfigError)?;
+
+    if let Some(workspace) = find_workspace(&opts, &config.data.workspaces) {
+        let cloup_path = workspace.location.join(format!("cl_{}", &opts.name));
+
+        // we want to take all files in the cloup path and copy them to the current directory
+        if cloup_path.exists() {
+            println!(
+                "\x1b[1;32m»\x1b[0m Applied cloup \x1b[1m{}\x1b[0m to \x1b[1m{}\x1b[0m",
+                &opts.name,
+                config.current_dir.to_string_lossy()
+            );
+
+            // there has to be some mechanism in case some files already exist and it overwrites, essentially you have to be asked yes or no whether you want to overwrite each file. So we prompt the user for each file that already exists and ask if they want to overwrite it.
+
+            return file::copy_recursive(&cloup_path, &config.current_dir, &[])
+                .map_err(ApplyError::FileError);
+        }
+
+        println!(
+            "\x1b[1;33m»\x1b[0m Cloup \x1b[1m{}\x1b[0m does not exist in workspace '{}'",
+            &opts.name, workspace.name
         );
-        process::exit(1);
-    });
 
-    eprintln!(
-        "To overwrite existing files, add the {} flag to the same command",
-        "-o".to_string().bright_purple()
-    );
+        Ok(())
+    } else {
+        Err(ApplyError::NotFound)
+    }
+}
 
-    println!(
-        "🎨 Successfully applied cloup {}",
-        &name.to_string().bright_purple(),
-    );
+fn find_workspace<'a>(opts: &'a ApplyOpts, workspaces: &'a [Workspace]) -> Option<&'a Workspace> {
+    if opts.workspace.is_none() {
+        workspaces.iter().find(|w| w.active)
+    } else {
+        workspaces
+            .iter()
+            .find(|w| w.name == opts.workspace.clone().unwrap())
+    }
 }

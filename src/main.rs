@@ -1,21 +1,30 @@
-mod cli;
 mod commands;
+mod dirs;
+mod toml;
 mod utils;
 
-use clap::Parser;
-use cli::{ApplyCommands, Cli, Command, CreateCommands};
-use commands::{apply, create, delete, init, list};
+use commands::{apply, create, init, list, workspace};
+use std::env;
+use utils::parse::{command_parser, Command};
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let Cli { command } = Cli::parse();
+fn run_app() -> Result<(), Box<dyn std::error::Error>> {
+    let argv: Vec<String> = env::args().skip(1).collect();
+
+    let command = command_parser(argv)?;
 
     match command {
-        Command::Init { name } => init::run(name),
-        Command::Create { name, files } => create::run(&name, CreateCommands { files }),
-        Command::Apply { name, overwrite } => apply::run(&name, ApplyCommands { overwrite }),
-        Command::Delete { name } => delete::run(&name),
-        Command::List => list::run(),
-    };
+        Command::Init(opts) => init::run(opts)?,
+        Command::Create(opts) => create::run(opts)?,
+        Command::Apply(opts) => apply::run(opts)?,
+        Command::List() => list::run()?,
+        Command::Workspace(opts) => workspace::run(opts)?,
+    }
 
     Ok(())
+}
+
+fn main() {
+    if let Err(err) = run_app() {
+        eprintln!("{err}");
+    }
 }
