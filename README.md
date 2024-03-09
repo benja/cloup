@@ -1,6 +1,6 @@
 <div align="center">
 
-# cloup v1
+# cloup
 
 ![Downloads][downloads-badge]
 ![License][license-badge]
@@ -136,4 +136,4 @@ Please make sure to update tests as appropriate.
 
 [downloads-badge]: https://img.shields.io/github/downloads/benja/cloup/total?color=bright-green&style=flat-square
 [license-badge]: https://img.shields.io/github/license/benja/cloup?style=flat-square
-[image]: contrib/example.png
+[image]: contrib/banner.png
